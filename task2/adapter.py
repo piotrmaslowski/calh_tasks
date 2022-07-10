@@ -42,8 +42,11 @@ class XMLWebServiceInvoker:
     def request(self, cunbr):
         # Make request to xml webservice with cunbr number
         # returns xml webservice response as string
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
+        r = requests.get("https://coding-academy.pl/customer/" + cunbr)
+        if r.status_code == 200:
+            return r.text
+        else:
+            return ""
 
 
 class Adapter(Target):
@@ -52,7 +55,6 @@ class Adapter(Target):
         self.adaptee = adaptee
 
     def request(self, json_request):
-        # IMPLEMENT ME PLZ!
         # json_request - request w formacie json zgodny z formatem:
         # {
         #     "customer_request": {
@@ -74,7 +76,21 @@ class Adapter(Target):
         #     }
         #   }
         # }
-        raise NotImplementedError
+        json_dict = json.loads(json_request)
+        if 'customer_request' not in json_dict \
+                or 'customer' not in json_dict['customer_request'] \
+                or 'cunbr' not in json_dict['customer_request']['customer']:
+            raise ValueError('json input format seems wrong')
+        cunbr = json_dict['customer_request']['customer']['cunbr']
+        accounts = []
+        xml_response = self.adaptee.request(cunbr)
+        root = ET.fromstring(xml_response)
+        for customer_data in root:
+            if customer_data.tag == "accounts":
+                for account in customer_data:
+                    accounts.append(account.text)
+        return JsonResponseBuilder().with_cunbr(cunbr).with_accounts(accounts).build()
+
 
 
 class AbstractJsonBuilder(ABC):
@@ -87,32 +103,32 @@ class AbstractJsonBuilder(ABC):
         pass
 
     def build(self):
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
+        return json.dumps(self.data)
+
 
 
 class JsonResponseBuilder(AbstractJsonBuilder):
     def __init__(self):
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
+        self.data = { "customer_response" : { "customer" : {} } }
+
 
     def with_cunbr(self, cunbr):
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
+        self.data['customer_response']['customer']['cunbr'] = cunbr;
+        return self
+
 
     def with_accounts(self, accounts):
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
-
+        self.data['customer_response']['customer']['accounts'] = accounts
+        return self
 
 class JsonRequestBuilder(AbstractJsonBuilder):
     def __init__(self):
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
+        self.data = { "customer_request" : { "customer" : {} } }
+
 
     def with_cunbr(self, cunbr):
-        # IMPLEMENT ME PLZ!
-        raise NotImplementedError
+        self.data['customer_request']['customer']['cunbr'] = cunbr;
+        return self
 
 
 def client_code(service, payload):
